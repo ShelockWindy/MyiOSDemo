@@ -1,7 +1,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "UIView+hiddenLayout"
-  s.version      = "0.0.1"
+  s.version      = "0.0.2"
   s.summary      = " UIView+hiddenLayout 当控件需要hidden 时自动更新约束."
   s.description  = <<-DESC
                 当view 需要显示或者隐藏时可以自动调整view 的约束或着还原约束，而不需要手动再去更改某个约束，前提是使用autolayout布局。

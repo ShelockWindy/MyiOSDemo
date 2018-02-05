@@ -55,4 +55,11 @@ typedef NS_ENUM(NSInteger,HiddenLayoutHorizontalAligent) {
  */
 @property (nonatomic,copy) NSMutableArray<NSLayoutConstraint*> * hiddenLayoutConstants;
 
+
+
+/**
+  this method will be auto called when the hiddenLayout changed
+ */
+-(void)hl_updateConstraints;
+
 @end

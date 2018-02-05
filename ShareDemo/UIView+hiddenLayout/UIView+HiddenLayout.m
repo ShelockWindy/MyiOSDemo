@@ -39,7 +39,7 @@
         //hook update constrains
         // 通过class_getInstanceMethod()函数从当前对象中的method list获取method结构体，如果是类方法就使用class_getClassMethod()函数获取。
         Method fromMethod = class_getInstanceMethod([self class], @selector(updateConstraints));
-        Method toMethod = class_getInstanceMethod([self class], @selector(hl_updateConstraints));
+        Method toMethod = class_getInstanceMethod([self class], @selector(my_updateConstraints));
         
         if (!class_addMethod([self class], @selector(hl_updateConstraints), method_getImplementation(toMethod), method_getTypeEncoding(toMethod))) {
             method_exchangeImplementations(fromMethod, toMethod);
@@ -50,10 +50,9 @@
     });
 }
 
+
 -(void)hl_updateConstraints
 {
-    [self hl_updateConstraints];
-    
     NSArray * layouts = self.constraints;
     if (![self isKindOfClass:[NSClassFromString(@"_UILayoutGuide") class]]) {
         //NSLog(@"***********\n%@",layouts);
@@ -77,7 +76,7 @@
         if (self.hiddenLayout) {
             
             NSLayoutConstraint  * left=nil ,*right=nil , *top = nil, *bottom = nil;
-
+            
             for (NSLayoutConstraint  * layout in layouts) {
                 layout.st_Constant = layout.constant>0?layout.constant:layout.st_Constant;
                 layout.constant = 0 ;
@@ -135,18 +134,18 @@
                 }
                 
                 if (top&&bottom) {
-            if(self.verticalAligent==HiddenLayoutVerticalAligent_topAligent&&bottom.st_Constant>0) {
-                    [hiddenlayoutContraints addObject:bottom];
-                    bottom.constant = 0;
-
-                }else if (top.st_Constant>0)
-                {
-                    [hiddenlayoutContraints addObject:top];
-                    top.constant = 0;
+                    if(self.verticalAligent==HiddenLayoutVerticalAligent_topAligent&&bottom.st_Constant>0) {
+                        [hiddenlayoutContraints addObject:bottom];
+                        bottom.constant = 0;
+                        
+                    }else if (top.st_Constant>0)
+                    {
+                        [hiddenlayoutContraints addObject:top];
+                        top.constant = 0;
+                    }
+                    
+                    
                 }
-                    
-                    
-             }
                 
                 if (left&&right) {
                     
@@ -176,8 +175,15 @@
             }
             
             
-         }
+        }
     }
+}
+
+-(void)my_updateConstraints
+{
+    [self my_updateConstraints];
+    //hook
+    [self hl_updateConstraints];
     
 }
 
@@ -187,7 +193,13 @@
 -(void)setHiddenLayout:(BOOL)hiddenLayout
 {
     
+    if (self.hiddenLayout == hiddenLayout) {
+        return;
+    }
+    
     objc_setAssociatedObject(self, @selector(hiddenLayout), @(hiddenLayout), OBJC_ASSOCIATION_ASSIGN);
+    
+    [self hl_updateConstraints];
 }
 
 -(BOOL)hiddenLayout
