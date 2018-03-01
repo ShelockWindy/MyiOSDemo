@@ -9,8 +9,8 @@
 #import <UIKit/UIKit.h>
 
 typedef NS_ENUM(NSInteger,HiddenLayoutVerticalAligent ) {
-    HiddenLayoutVerticalAligent_topAligent,//default
-    HiddenLayoutVerticalAligent_bottomAligent
+    HiddenLayoutVerticalAligent_top,//default
+    HiddenLayoutVerticalAligent_bottom
 };
 
 typedef NS_ENUM(NSInteger,HiddenLayoutHorizontalAligent) {
@@ -39,13 +39,19 @@ typedef NS_ENUM(NSInteger,HiddenLayoutHorizontalAligent) {
 
 
 /**
+ example label text is nil ,or imageview's image is nil
+ */
+@property (nonatomic,assign) BOOL  autoHiddenLayout;
+
+
+/**
  default left  aligent
  */
 @property (nonatomic,assign) HiddenLayoutHorizontalAligent horizontalAligent;
 
 
 /**
- default right aligent
+ default top aligent
  */
 @property (nonatomic,assign) HiddenLayoutVerticalAligent  verticalAligent;
 
@@ -53,13 +59,8 @@ typedef NS_ENUM(NSInteger,HiddenLayoutHorizontalAligent) {
 /**
  store the default layout constraints
  */
-@property (nonatomic,copy) NSMutableArray<NSLayoutConstraint*> * hiddenLayoutConstants;
+@property (nonatomic,copy) IBOutletCollection(NSLayoutConstraint)  NSMutableArray<NSLayoutConstraint*> * hiddenLayoutConstants;
 
 
-
-/**
-  this method will be auto called when the hiddenLayout changed
- */
--(void)hl_updateConstraints;
 
 @end

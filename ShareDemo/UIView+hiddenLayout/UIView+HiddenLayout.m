@@ -16,7 +16,7 @@
 
 -(void)setSt_Constant:(CGFloat)st_Constant
 {
-    objc_setAssociatedObject(self, @selector(st_Constant), @(st_Constant), OBJC_ASSOCIATION_ASSIGN);
+    objc_setAssociatedObject(self, @selector(st_Constant), @(st_Constant), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
 }
 
@@ -38,26 +38,165 @@
         
         //hook update constrains
         // 通过class_getInstanceMethod()函数从当前对象中的method list获取method结构体，如果是类方法就使用class_getClassMethod()函数获取。
-        Method fromMethod = class_getInstanceMethod([self class], @selector(updateConstraints));
-        Method toMethod = class_getInstanceMethod([self class], @selector(my_updateConstraints));
+        [self hook_Method:@selector(updateConstraints) newMethod:@selector(my_updateConstraints)];
         
-        if (!class_addMethod([self class], @selector(hl_updateConstraints), method_getImplementation(toMethod), method_getTypeEncoding(toMethod))) {
-            method_exchangeImplementations(fromMethod, toMethod);
-        }
+        [self hook_Method:@selector(addConstraint:) newMethod:@selector(hl_addConstraint:)];
         
-    
         
     });
 }
 
-
--(void)hl_updateConstraints
++(void)hook_Method:(SEL)orign newMethod:(SEL)new
 {
-    NSArray * layouts = self.constraints;
-    if (![self isKindOfClass:[NSClassFromString(@"_UILayoutGuide") class]]) {
-        //NSLog(@"***********\n%@",layouts);
+    Method fromMethod = class_getInstanceMethod([self class], orign);
+    Method toMethod = class_getInstanceMethod([self class], new);
+    
+    if (!class_addMethod([self class], new, method_getImplementation(toMethod), method_getTypeEncoding(toMethod))) {
+        method_exchangeImplementations(fromMethod, toMethod);
+    }
+    
+}
+
+-(void)hl_addConstraint:(NSLayoutConstraint *)constraint
+{
+    [self hl_addConstraint:constraint];
+    
+    UIView * firstV = constraint.firstItem;
+    UIView * secondV = constraint.secondItem;
+    
+    
+    //vertical
+
+    if (constraint.firstAttribute==NSLayoutAttributeTop) {
         
-        BOOL hiddenLayout ;
+        if (![firstV isEqual:self]) {
+            
+            if (firstV.hiddenLayoutConstants==nil) {
+                firstV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [firstV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    if (constraint.secondAttribute==NSLayoutAttributeTop) {
+        
+        if (![secondV isEqual:self]) {
+            
+            if (secondV.hiddenLayoutConstants==nil) {
+                secondV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [secondV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    
+    if (constraint.firstAttribute==NSLayoutAttributeHeight) {
+        
+        if ([firstV isEqual:self]&&![self isKindOfClass:[UILabel class]]) {
+            
+            if (firstV.hiddenLayoutConstants==nil) {
+                firstV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [firstV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    
+    if (constraint.secondAttribute==NSLayoutAttributeHeight) {
+        
+        if ([secondV isEqual:self]&&![self isKindOfClass:[UILabel class]]) {
+            if (secondV.hiddenLayoutConstants==nil) {
+                secondV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            
+            constraint.st_Constant = constraint.constant;
+
+            [secondV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+//horizonta
+    
+    if (constraint.firstAttribute==NSLayoutAttributeLeft||constraint.firstAttribute==NSLayoutAttributeLeading) {
+        
+        if (![firstV isEqual:self]) {
+        
+            if (firstV.hiddenLayoutConstants==nil) {
+                firstV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [firstV.hiddenLayoutConstants addObject:constraint];
+        
+        }
+        
+    }
+    
+    if (constraint.firstAttribute==NSLayoutAttributeLeft||constraint.firstAttribute==NSLayoutAttributeLeading) {
+
+        if (![secondV isEqual:self]) {
+            
+            if (secondV.hiddenLayoutConstants==nil) {
+                secondV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [secondV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    
+    if (constraint.firstAttribute==NSLayoutAttributeWidth) {
+        
+        if ([firstV isEqual:self]&&![self isKindOfClass:[UILabel class]]) {
+            
+            if (firstV.hiddenLayoutConstants==nil) {
+                firstV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            constraint.st_Constant = constraint.constant;
+            [firstV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    
+    if (constraint.secondAttribute==NSLayoutAttributeWidth) {
+        
+        if ([secondV isEqual:self]&&![self isKindOfClass:[UILabel class]]) {
+            if (secondV.hiddenLayoutConstants==nil) {
+                secondV.hiddenLayoutConstants = [NSMutableArray array];
+            }
+            
+            constraint.st_Constant = constraint.constant;
+            
+            [secondV.hiddenLayoutConstants addObject:constraint];
+            
+        }
+        
+    }
+    
+    
+}
+
+
+-(void)my_updateConstraints
+{
+    [self my_updateConstraints];
+    
+    if (self.autoHiddenLayout && self.hiddenLayoutConstants.count > 0) {
+        
         // "Absent" means this view doesn't have an intrinsic content size, {-1, -1} actually.
         const CGSize absentIntrinsicContentSize = CGSizeMake(UIViewNoIntrinsicMetric, UIViewNoIntrinsicMetric);
         
@@ -68,122 +207,70 @@
         // it going to be collapsed.
         if (CGSizeEqualToSize(contentSize, absentIntrinsicContentSize) ||
             CGSizeEqualToSize(contentSize, CGSizeZero)) {
-            hiddenLayout = YES;
+            self.hiddenLayout = YES;
         } else {
-            hiddenLayout = NO;
-        }
-        
-        if (self.hiddenLayout) {
-            
-            NSLayoutConstraint  * left=nil ,*right=nil , *top = nil, *bottom = nil;
-            
-            for (NSLayoutConstraint  * layout in layouts) {
-                layout.st_Constant = layout.constant>0?layout.constant:layout.st_Constant;
-                layout.constant = 0 ;
-                
-                //NSLog(@"edglayouts------%@",superlayouts);
-            }
-            
-            NSArray  * superlayouts = self.superview.constraints;
-            
-            NSMutableArray * edgslayouts = [NSMutableArray array];
-            NSMutableArray * hiddenlayoutContraints = [NSMutableArray array];
-            [hiddenlayoutContraints addObjectsFromArray:layouts];
-            for (NSLayoutConstraint * suplayout in superlayouts) {
-                suplayout.st_Constant = suplayout.constant>0?suplayout.constant:suplayout.st_Constant;
-                if (suplayout.firstItem== self||suplayout.secondItem==self) {
-                    [edgslayouts addObject:suplayout];
-                    
-                    if (suplayout.firstItem== self) {
-                        
-                        if (suplayout.firstAttribute == NSLayoutAttributeTop) {
-                            top = suplayout;
-                        }
-                        
-                        if (suplayout.firstAttribute == NSLayoutAttributeRight) {
-                            right = suplayout;
-                        }
-                        
-                        if (suplayout.firstAttribute == NSLayoutAttributeLeft) {
-                            left = suplayout;
-                        }
-                        
-                        if (suplayout.firstAttribute == NSLayoutAttributeBottom) {
-                            bottom = suplayout;
-                        }
-                        
-                    }else
-                    {
-                        if (suplayout.secondAttribute == NSLayoutAttributeTop) {
-                            top = suplayout;
-                        }
-                        
-                        if (suplayout.secondAttribute == NSLayoutAttributeRight) {
-                            right = suplayout;
-                        }
-                        
-                        if (suplayout.secondAttribute == NSLayoutAttributeLeft) {
-                            left = suplayout;
-                        }
-                        
-                        if (suplayout.secondAttribute == NSLayoutAttributeBottom) {
-                            bottom = suplayout;
-                        }
-                    }
-                    
-                }
-                
-                if (top&&bottom) {
-                    if(self.verticalAligent==HiddenLayoutVerticalAligent_topAligent&&bottom.st_Constant>0) {
-                        [hiddenlayoutContraints addObject:bottom];
-                        bottom.constant = 0;
-                        
-                    }else if (top.st_Constant>0)
-                    {
-                        [hiddenlayoutContraints addObject:top];
-                        top.constant = 0;
-                    }
-                    
-                    
-                }
-                
-                if (left&&right) {
-                    
-                    if (self.horizontalAligent == HiddenLayoutHorizontalAligent_lelf&&right.st_Constant>0) {
-                        
-                        [hiddenlayoutContraints addObject:right];
-                        right.constant = 0;
-                    }else if (left.st_Constant>0){
-                        
-                        [hiddenlayoutContraints addObject:left];
-                        left.constant = 0;
-                        
-                    }
-                    
-                }
-                
-            }
-            
-            self.hiddenLayoutConstants = hiddenlayoutContraints;
-            
-            
-        }else
-        {
-            
-            for (NSLayoutConstraint * defalut   in  self.hiddenLayoutConstants) {
-                defalut.constant = defalut.st_Constant;
-            }
-            
-            
+            self.hiddenLayout = NO;
         }
     }
+
 }
 
--(void)my_updateConstraints
+
+-(void)getHiddenLayoutConstants
 {
-    [self my_updateConstraints];
-    //hook
-    [self hl_updateConstraints];
+    NSArray * layouts = self.superview.constraints;
+    NSLayoutConstraint * left, * right, * top, * bottom;
+    for (NSLayoutConstraint * layout in layouts) {
+        
+        if ((layout.firstItem==self&&layout.firstAttribute==NSLayoutAttributeLeft)||(layout.secondItem==self&&layout.secondAttribute==NSLayoutAttributeLeft)) {
+            left = layout;
+        }
+        
+        if ((layout.firstItem==self&&layout.firstAttribute==NSLayoutAttributeRight)||(layout.secondItem==self&&layout.secondAttribute==NSLayoutAttributeRight)) {
+            right = layout;
+        }
+        
+        if ((layout.firstItem==self&&layout.firstAttribute==NSLayoutAttributeTop)||(layout.secondItem==self&&layout.secondAttribute==NSLayoutAttributeTop)) {
+            top = layout;
+        }
+        
+        if ((layout.firstItem==self&&layout.firstAttribute==NSLayoutAttributeBottom)||(layout.secondItem==self&&layout.secondAttribute==NSLayoutAttributeBottom)) {
+            bottom = layout;
+        }
+        
+        NSMutableArray * array = [NSMutableArray array];
+        if (self.horizontalAligent==HiddenLayoutHorizontalAligent_lelf) {
+            
+            if (right) {
+                right.st_Constant = right.constant;
+                [array addObject:right];
+            }
+        }else
+        {
+            if (left) {
+                left.st_Constant = left.constant;
+                [array addObject:left];
+            }
+        }
+        
+        if (self.verticalAligent==HiddenLayoutVerticalAligent_top) {
+            
+            if (bottom) {
+                bottom.st_Constant = bottom.constant;
+                [array addObject:bottom];
+            }
+        }else
+        {
+            if (top) {
+                top.st_Constant = top.constant;
+                [array addObject:top];
+            }
+        }
+        
+        self.hiddenLayoutConstants = array;
+        
+    }
+    
     
 }
 
@@ -193,13 +280,18 @@
 -(void)setHiddenLayout:(BOOL)hiddenLayout
 {
     
-    if (self.hiddenLayout == hiddenLayout) {
-        return;
-    }
-    
+    NSLog(@"%@,,,,",self.hiddenLayoutConstants);
+    [self.hiddenLayoutConstants enumerateObjectsUsingBlock:
+     ^(NSLayoutConstraint *constraint, NSUInteger idx, BOOL *stop) {
+         if (hiddenLayout) {
+             constraint.constant = 0;
+         } else {
+             constraint.constant = constraint.st_Constant;
+         }
+     }];
+
     objc_setAssociatedObject(self, @selector(hiddenLayout), @(hiddenLayout), OBJC_ASSOCIATION_ASSIGN);
-    
-    [self hl_updateConstraints];
+    self.hidden = hiddenLayout;
 }
 
 -(BOOL)hiddenLayout
@@ -208,14 +300,44 @@
 }
 
 
+-(void)setAutoHiddenLayout:(BOOL)autoHiddenLayout
+{
+    objc_setAssociatedObject(self, @selector(autoHiddenLayout), @(autoHiddenLayout), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+    
+    self.hiddenLayout = autoHiddenLayout;
+}
+
+-(BOOL)autoHiddenLayout
+{
+    return [objc_getAssociatedObject(self, _cmd) boolValue];
+}
+
+
+
 -(void)setHiddenLayoutConstants:(NSMutableArray<NSLayoutConstraint *> *)hiddenLayoutConstants
 {
-    objc_setAssociatedObject(self, @selector(hiddenLayoutConstants),hiddenLayoutConstants, OBJC_ASSOCIATION_COPY);
+    // Hook assignments to our custom `fd_collapsibleConstraints` property.
+    NSMutableArray *constraints = (NSMutableArray *)self.hiddenLayoutConstants;
+    
+    [hiddenLayoutConstants enumerateObjectsUsingBlock:^(NSLayoutConstraint *constraint, NSUInteger idx, BOOL *stop) {
+        // Store original constant value
+        constraint.st_Constant = constraint.constant;
+        [constraints addObject:constraint];
+    }];
+    
 }
 
 -(NSMutableArray<NSLayoutConstraint *> *)hiddenLayoutConstants
 {
-    return objc_getAssociatedObject(self, _cmd);
+    NSMutableArray *constraints = objc_getAssociatedObject(self, _cmd);
+
+    if (!constraints) {
+        constraints = @[].mutableCopy;
+        objc_setAssociatedObject(self, _cmd, constraints, OBJC_ASSOCIATION_RETAIN);
+    }
+    
+    return constraints;
 }
 
 
@@ -239,6 +361,7 @@
 {
     objc_setAssociatedObject(self, @selector(verticalAligent), @(verticalAligent), OBJC_ASSOCIATION_ASSIGN);
 }
+
 
 
 @end
